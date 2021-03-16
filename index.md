@@ -20,6 +20,11 @@ The data used for this project is the [IKEA Assembly Dataset](https://ikeaasm.gi
 
 The dataset also includes code to generate point clouds from the Kinect data. Other libraries and methods exists to create these point clouds, although we use the code included with the dataset. Our method can easily be tweaked to take RGB-D data and camera parameters as input and generate the point clouds within the program, but we chose to accept point clouds as input as this is intended to be a preprocessing step in larger pipelines.
 
+![Data](imgs/data.png)
+_Top: RGB and depth image from dataset_
+
+_Bottom: Generated point cloud_
+
 # Implementation
 
 ## Technical Details
@@ -31,19 +36,32 @@ This project is implemented in Python3 using the [Open3D](http://www.open3d.org/
 The point cloud refinement process involves several transformations from mesh to point cloud using various methods. During each transformation, we gain information in missing places or lose irrelvant information. Between transformations, we refine the representation of the environment and perform the necessary calculations for the next step.
 
 ![Process flowchart](imgs/process.png)
-_Point Cloud Preprocessing Flow_
+_Point cloud processing flow_
 
 ### Clean Point Cloud
 
 The data taken from the Kinect is often noisy, which results in poor quality point clouds. We perform simple statistical analysis and remove outliers. A point is determined to be an outlier if it is further away from its neighbors compared to the average for the point cloud. The end result is a clean point cloud that does not contain any stray points or inaccurate data.
 
+![Cleaning](imgs/cleaning.png)
+_Left: Original point cloud_
+
+_Middle: Outliers (shown in red)_
+
+_Right: Cleaned point cloud_
+
 ### Compute Surface Normals
 
 In order for the meshing algorithms to work correctly, the point cloud must contain accurate surface normals. Open3D provides a function to estimate this, which considers each point and its neighbors, then fits a surface to those points and computes the normals. However, the estimation only considers the local neighbors of each point, which can introduce inconsistency among the normals of a point and the ones around it.
 
+![Surface Normals](imgs/estimated-normals.png)
+_Point cloud with estimated normals_
+
 ### Refine Surface Normals
 
 While the previous step estimates the normals of each point, they are still inconsistent enough to perform accurate meshing. As seen in the floor of the room pictured below, some point normals are facing up while others are facing the opposite direction. This affects the meshing algorithm as it will not interpret the floor as one continuous surface. To rectify this problem, we align the surface normals according to a consistent tangent plane. The end result is a point cloud with normals aligned consistently with one another.
+
+![Refined Normals](imgs/oriented-normals.png)
+_Point cloud with refined normals_
 
 ### Mesh with Ball Pivoting Algorithm
 
@@ -51,9 +69,21 @@ The next step is to mesh the point cloud with our first algorithm, the ball pivo
 
 This step reconstructs the planes within the point cloud very well, clearly extracting the walls, tables, and floor visible from the original point cloud. With correct parameter tuning, only the room geometry will remain in the mesh while the human figure is lost, as well as some partially captured objects that are not fully present in the original cloud. However, since the BPA only considers existing points while reconstructing surfaces, the large gaps present in the point cloud remain in the output mesh.
 
+![BPA Meshes](imgs/bpa-comparison.png)
+_Left: BPA mesh with sphere radii too small_
+
+_Middle: BPA mesh with tuned sphere radii_
+
+_Right: BPA mesh with sphere radii too large_
+
 ### Resample Point Cloud
 
 In order to perform further meshing algorithms, we then sample the mesh produced in the previous step and create a new point cloud. We use Poisson Disk Sampling, chosen for its even sampling along the entire mesh surface. Compared to other sampling methods, Poisson Disk Sampling results in the least amount of point clustering in corners and curve inflection points and provides a uniform point cloud.
+
+![BPA PC](imgs/bpa-sample.png)
+_Right: Mesh produced by BPA_
+
+_Left: Point cloud sampled from mesh_
 
 ### Mesh with Poisson 
 
@@ -61,13 +91,24 @@ To fill in the holes remaining in the resampled point cloud, we mesh using Poiss
 
 This step fills in most of the gaps in the point cloud. Areas such as behind the human figure, behind the table, and underneath the shelves on the left wall are now smooth and continuous with the rest of the surface. Unfortunately, this step also extends the mesh past the original room boundary and can "swell" thin objects, as seen in the shelves along the wall and the edges of the table.
 
+![PSR](imgs/poisson-mesh.png)
+_Mesh Produced by PSR_
+
 ### Refine Poisson Mesh
 
 During PSR, some mesh faces are created using many points close together, while others are created with few points spread apart. This results in dense and rare faces, visualized in the picture below to the left with dense faces colored yellow and slowly fading to purple as the density decreases. We can extract each faces density value from the PSR function call and use the values to remove faces below an arbitrary density threshold. We chose to remove faces with density values less than the 0.01th quantile of all density values present in the mesh. This results in the cropped mesh, shown below and to the right. While this method is not perfect, it removes some faces past the boundary of the room. Unfortunately, it also removes faces covering large holes within the room, such as behind the table. These faces simply do not have enough points to ensure accuracy to the original room geometry.
 
+![PSR Refinement](imgs/density-crop.png)
+_Left: PSR Mesh Colored by Density_
+
+_Right: Cropped PSR Mesh_
+
 ### Sample Final Point Cloud
 
 Finally, we sample the final point cloud from the PSR mesh. We use Poisson Disk Sampling, as in the last sampling step. This yields the final point cloud, shown below. While the final point cloud contains less points than the input, it is still dense enough to operate on. The original point cloud is very dense in areas the camera can see and nonexistent where occluded. The final point cloud is evenly dense across all filled areas. Furthermore, since we sample from a continous mesh, if a denser point cloud is needed we can simply change the sampling parameter to include more points. The images shown below contain 20,000 points per cloud. 
+
+![Final PC](imgs/final-pc.png)
+_Final point cloud_
 
 # Results
 
@@ -81,7 +122,10 @@ Naturally, we explored several different methods before reaching our final solut
 
 ## Bounding Box Cropping
 
-To solve the issue of the final point cloud extending past the room boundary, we experimented with cropping the output according to a bounding box computed from the cleaned orignal point cloud. The idea is that since the cleaned point cloud matches the room boundary exactly, we can define a bounding box that tightly fits the walls of the room. We can then use that bounding box to crop the final point cloud and remove any points that extend outside the room. Unfortunately, we were unable to align the bounding box correclty with the room geometry, and therefore the box was not tightly fit enough to remove any points from the final point cloud. 
+To solve the issue of the final point cloud extending past the room boundary, we experimented with cropping the output according to a bounding box computed from the cleaned orignal point cloud. The idea is that since the cleaned point cloud matches the room boundary exactly, we can define a bounding box that tightly fits the walls of the room. We can then use that bounding box to crop the final point cloud and remove any points that extend outside the room. Unfortunately, we were unable to align the bounding box correclty with the room geometry, and therefore the box was not tightly fit enough to remove any points from the final point cloud.
+
+![BBox](imgs/bbox.png)
+_Bounding box around original point cloud_
 
 ## Aggregating Original Point Clouds
 
@@ -90,6 +134,8 @@ The first idea we experimented with was simply aggregating point clouds from the
 ## Planar Estimation
 
 Another method we tried involved planar estimation of the walls and floor. The idea is that if we can estimate the prevalent planes from the scene, we could then generate new points along that plane and add them to the point cloud. We could extract the points only in missing areas of the point cloud and fill major gaps without the swelling cuased by PSR. While we were able to identify major planes in the scene, we could not generate new points along that plane to add to the point cloud. However, this method shows potential and, if both are solved, could be combined with bounding box cropping to improve results.
+
+![Planar Estimation](imgs/plane-id.png)
 
 # Discussion
 
