@@ -71,12 +71,32 @@ Finally, we sample the final point cloud from the PSR mesh. We use Poisson Disk 
 
 # Results
 
+The end result is a point cloud with most gaps filled when compared with the original. Areas with moderate depth camera occlusion have been filled in, such as behind the human figure in both scenes below. In Scene 1, missing areas behind and below the wall shelves have been filled, as well as some area behind the table. In Scene 2, the wall and corners behind the couch are filled, as well as some missing areas on the couch. The original point cloud for Scene 4 contains only 3 segments of the wall behind the human figure. In our reconstructed version, the entire wall is filled in, as well as the holes below and behind the table. We noticed our method performs best on closed scenes where 3 walls are visible.
+
+Unfortunately, this reconstruction is not perfectly accurate. Thin objects tend to swell during the PSR stage, and the final point cloud often extends beyond the original room boundary. We experimented with methods to reduce these inaccuracies but ultimately were unsuccessful. Additionally, we may lose some thin or partially captured objects, shown by the desks on the left side of Scene 3, and the green box on the left of Scene 4. These objects are not captured during the BPA stage due to the meshing parameters. With tuning of parameters, the objects could be retained, however this will adversely affect the algorithm's performance on other scenes. We opted to choose parameters that had the best general performance over all scenes as opposed to individual scene parameter tuning as the latter  does not scale.
+
 # Failed Experiments
+
+Naturally, we explored several different methods before reaching our final solution. While some of these options show promising potential, we ran into issues that require more time and testing than available. Other methods simply did not perform as well.
 
 ## Bounding Box Cropping
 
+To solve the issue of the final point cloud extending past the room boundary, we experimented with cropping the output according to a bounding box computed from the cleaned orignal point cloud. The idea is that since the cleaned point cloud matches the room boundary exactly, we can define a bounding box that tightly fits the walls of the room. We can then use that bounding box to crop the final point cloud and remove any points that extend outside the room. Unfortunately, we were unable to align the bounding box correclty with the room geometry, and therefore the box was not tightly fit enough to remove any points from the final point cloud. 
+
 ## Aggregating Original Point Clouds
+
+The first idea we experimented with was simply aggregating point clouds from the same scene. Since the dataset provides videos of assembly, we wanted to use information from several frames temporally distant from each other to aggregate more information about the scene. Unfortunately, due to the single-view nature of the scene, we could only gain information where the human figure moved and any surfaces occluded by objects were not improved. Additionally, this method introduced more noise in the human figure and yielded poorer results.
 
 ## Planar Estimation
 
+Another method we tried involved planar estimation of the walls and floor. The idea is that if we can estimate the prevalent planes from the scene, we could then generate new points along that plane and add them to the point cloud. We could extract the points only in missing areas of the point cloud and fill major gaps without the swelling cuased by PSR. While we were able to identify major planes in the scene, we could not generate new points along that plane to add to the point cloud. However, this method shows potential and, if both are solved, could be combined with bounding box cropping to improve results.
+
 # Discussion
+
+While the dataset used contains assemblies from several different environments, we are unsure how our method generalizes to different data. Running our method on outdoor scenes, or scenes with multiple human figures included could yield insightful information.
+
+We also noted that the performance of our method draws heavily from the accuracy of the second meshing stage. Employing other meshing algorithms, such as [REIN](https://openaccess.thecvf.com/content_CVPRW_2020/papers/w22/Daroya_REIN_Flexible_Mesh_Generation_From_Point_Clouds_CVPRW_2020_paper.pdf), a neural network based solution, could yield significantly better results. According to their paper, REIN performs much better than both BPA and PSR, which could extend to our data as well.
+
+Considering partial neural network implementation in our method leads us to consider the viability of an end-to-end neural network implementation of our algorithm. A network could learn semantic information about objects in the scene, which can improve reconstruction accuracy on the backside of objects in the scene. For example, if the network sees only the front of a couch, it could recognize how the backside typically looks and reconstruct the points in the same manner. This method should be explored further.
+
+Our method also could be used to generate different views of the scene. By filling in the rest of the environment, we could render the scene and generate new video data from a different vantage point. Mesh representations are more useful for this application, so we could modify the current process to skip the final point cloud sampling and output the PSR mesh for further processing.
