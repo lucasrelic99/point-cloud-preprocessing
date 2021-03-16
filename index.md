@@ -63,43 +63,20 @@ This step fills in most of the gaps in the point cloud. Areas such as behind the
 
 ### Refine Poisson Mesh
 
-During PSR, some mesh faces are created using many points close together, while others are created with few points spread apart. This results in dense and rare faces, visualized in the picture below to the left with dense faces colored yellow and slowly fading to purple as the density decreases. We can extract each faces density value from the PSR function call and use the values to remove faces below an arbitrary density threshold. We chose to remove faces with density values less than the 0.01th quantile of all density values present in the mesh. This results in the cropped mesh, shown below and to the right. While this method is not perfect, it removes some faces past the boundary of the room. Unfortunately, it also removes faces covering large holes within the room, such as behind the table. These faces simply do not have enough points to ensure accuract to the original room geometry.
+During PSR, some mesh faces are created using many points close together, while others are created with few points spread apart. This results in dense and rare faces, visualized in the picture below to the left with dense faces colored yellow and slowly fading to purple as the density decreases. We can extract each faces density value from the PSR function call and use the values to remove faces below an arbitrary density threshold. We chose to remove faces with density values less than the 0.01th quantile of all density values present in the mesh. This results in the cropped mesh, shown below and to the right. While this method is not perfect, it removes some faces past the boundary of the room. Unfortunately, it also removes faces covering large holes within the room, such as behind the table. These faces simply do not have enough points to ensure accuracy to the original room geometry.
+
 ### Sample Final Point Cloud
 
-## Welcome to GitHub Pages
+Finally, we sample the final point cloud from the PSR mesh. We use Poisson Disk Sampling, as in the last sampling step. This yields the final point cloud, shown below. While the final point cloud contains less points than the input, it is still dense enough to operate on. The original point cloud is very dense in areas the camera can see and nonexistent where occluded. The final point cloud is evenly dense across all filled areas. Furthermore, since we sample from a continous mesh, if a denser point cloud is needed we can simply change the sampling parameter to include more points. The images shown below contain 20,000 points per cloud. 
 
-You can use the [editor on GitHub](https://github.com/lucasrelic99/xr-project/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+# Results
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+# Failed Experiments
 
-### Markdown
+## Bounding Box Cropping
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+## Aggregating Original Point Clouds
 
-```markdown
-Syntax highlighted code block
+## Planar Estimation
 
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
-
-### Jekyll Themes
-
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/lucasrelic99/xr-project/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+# Discussion
