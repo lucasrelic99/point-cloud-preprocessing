@@ -67,7 +67,7 @@ _Point cloud with refined normals_
 
 The next step is to mesh the point cloud with our first algorithm, the ball pivoting algorithm (BPA). This method works by dropping imaginary spheres of varying radii into the point cloud. When a sphere touches 3 points, the algorithm connects them into a mesh face. The ball then rolls around the first face and creates new faces until eventually falling through the mesh. This is provided by Open3D.
 
-This step reconstructs the planes within the point cloud very well, clearly extracting the walls, tables, and floor visible from the original point cloud. With correct parameter tuning, only the room geometry will remain in the mesh while the human figure is lost, as well as some partially captured objects that are not fully present in the original cloud. However, since the BPA only considers existing points while reconstructing surfaces, the large gaps present in the point cloud remain in the output mesh.
+This step reconstructs the planes within the point cloud very well, clearly extracting the walls, tables, and floor visible from the original point cloud. With correct parameter tuning, shown in the middle below, only the room geometry will remain in the mesh while the human figure is lost, as well as some partially captured objects that are not fully present in the original cloud. However, since the BPA only considers existing points while reconstructing surfaces, the large gaps present in the point cloud remain in the output mesh.
 
 ![BPA Meshes](imgs/bpa-comparison.png)
 _Left: BPA mesh with sphere radii too small_
@@ -114,7 +114,19 @@ _Final point cloud_
 
 The end result is a point cloud with most gaps filled when compared with the original. Areas with moderate depth camera occlusion have been filled in, such as behind the human figure in both scenes below. In Scene 1, missing areas behind and below the wall shelves have been filled, as well as some area behind the table. In Scene 2, the wall and corners behind the couch are filled, as well as some missing areas on the couch. The original point cloud for Scene 4 contains only 3 segments of the wall behind the human figure. In our reconstructed version, the entire wall is filled in, as well as the holes below and behind the table. We noticed our method performs best on closed scenes where 3 walls are visible.
 
+![Scene 1](imgs/scene-one.png)
+_Scene 1_
+
+![Scene 2](imgs/scene-two.png)
+_Scene 2_
+
 Unfortunately, this reconstruction is not perfectly accurate. Thin objects tend to swell during the PSR stage, and the final point cloud often extends beyond the original room boundary. We experimented with methods to reduce these inaccuracies but ultimately were unsuccessful. Additionally, we may lose some thin or partially captured objects, shown by the desks on the left side of Scene 3, and the green box on the left of Scene 4. These objects are not captured during the BPA stage due to the meshing parameters. With tuning of parameters, the objects could be retained, however this will adversely affect the algorithm's performance on other scenes. We opted to choose parameters that had the best general performance over all scenes as opposed to individual scene parameter tuning as the latter  does not scale.
+
+![Scene 3](imgs/scene-three.png)
+_Scene 3_
+
+![Scene 4](imgs/scene-four.png)
+_Scene 4_
 
 # Failed Experiments
 
@@ -131,11 +143,16 @@ _Bounding box around original point cloud_
 
 The first idea we experimented with was simply aggregating point clouds from the same scene. Since the dataset provides videos of assembly, we wanted to use information from several frames temporally distant from each other to aggregate more information about the scene. Unfortunately, due to the single-view nature of the scene, we could only gain information where the human figure moved and any surfaces occluded by objects were not improved. Additionally, this method introduced more noise in the human figure and yielded poorer results.
 
+![Agg PC](imgs/agg-compare.png)
+_Comparison of single and aggregated point cloud_
+
 ## Planar Estimation
 
-Another method we tried involved planar estimation of the walls and floor. The idea is that if we can estimate the prevalent planes from the scene, we could then generate new points along that plane and add them to the point cloud. We could extract the points only in missing areas of the point cloud and fill major gaps without the swelling cuased by PSR. While we were able to identify major planes in the scene, we could not generate new points along that plane to add to the point cloud. However, this method shows potential and, if both are solved, could be combined with bounding box cropping to improve results.
+Another method we tried involved planar estimation of the walls and floor. The idea is that if we can estimate the prevalent planes from the scene, we could then generate new points along that plane and add them to the point cloud. We could extract the points only in missing areas of the point cloud and fill major gaps without the swelling cuased by PSR. While we were able to identify major planes in the scene, shown below in green, we could not generate new points along that plane to add to the point cloud. However, this method shows potential and, if both are solved, could be combined with bounding box cropping to improve results.
 
 ![Planar Estimation](imgs/plane-id.png)
+
+_Point cloud with identified plane_
 
 # Discussion
 
