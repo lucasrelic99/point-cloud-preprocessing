@@ -165,3 +165,13 @@ We also noted that the performance of our method draws heavily from the accuracy
 Considering partial neural network implementation in our method leads us to consider the viability of an end-to-end neural network implementation of our algorithm. A network could learn semantic information about objects in the scene, which can improve reconstruction accuracy on the backside of objects in the scene. For example, if the network sees only the front of a couch, it could recognize how the backside typically looks and reconstruct the points in the same manner. This method should be explored further.
 
 Our method also could be used to generate different views of the scene. By filling in the rest of the environment, we could render the scene and generate new image data from a different vantage point. Mesh representations are more useful for this application, so we could modify the current process to skip the final point cloud sampling and output the PSR mesh for further processing.
+
+
+
+
+
+
+
+'''
+Project implemented by Lucas Relic
+'''
